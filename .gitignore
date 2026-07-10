@@ -1,0 +1,22 @@
+## .NET Core & Build Artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio & VS Code
+.vs/
+.vscode/
+*.swp
+*~
+
+## SQLite Database Files
+*.db
+*.db-shm
+*.db-wal
+
+## Logs & Temp files
+*.log
+.system_generated/

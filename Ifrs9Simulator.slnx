@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Ifrs9Simulator.Api/Ifrs9Simulator.Api.csproj" />
+  <Project Path="Ifrs9Simulator.Tests/Ifrs9Simulator.Tests.csproj" />
+</Solution>

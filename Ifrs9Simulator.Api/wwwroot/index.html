@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IFRS 9 Macro-Shock Risk Simulator</title>
+  <style>
+    /* Strict Black, White, and Grayscale Palette. Font strictly Times New Roman / Serif */
+    :root {
+      --bg-canvas: #ffffff;
+      --bg-surface: #fbfbfb;
+      --bg-card: #ffffff;
+      --bg-alt: #f3f3f3;
+      --border-light: #e5e5e5;
+      --border-medium: #cccccc;
+      --border-dark: #333333;
+      --border-heavy: #000000;
+      --text-primary: #000000;
+      --text-secondary: #555555;
+      --text-muted: #777777;
+      --badge-bg: #eeeeee;
+      --bar-s1: #e0e0e0;
+      --bar-s2: #888888;
+      --bar-s3: #111111;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Times New Roman", Times, "Nimbus Roman No9 L", serif;
+    }
+
+    body {
+      background-color: var(--bg-surface);
+      color: var(--text-primary);
+      line-height: 1.5;
+      padding: 2.5rem 1.5rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header styling */
+    header {
+      border-bottom: 2px solid var(--border-heavy);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+    }
+
+    .meta-tag {
+      font-size: 0.85rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--border-dark);
+      background-color: var(--badge-bg);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 880px;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 950px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card styling */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-medium);
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-medium);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Controls */
+    .slider-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+
+    .slider-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .slider-val {
+      font-weight: 700;
+      font-size: 1.1rem;
+      font-variant-numeric: tabular-nums;
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--border-dark);
+      background-color: var(--bg-alt);
+      min-width: 65px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border-light);
+      border: 1px solid var(--border-medium);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--text-primary);
+      border: 1px solid var(--border-heavy);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--text-primary);
+      border: 1px solid var(--border-heavy);
+      cursor: pointer;
+    }
+
+    .slider-limits {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Preset Scenarios */
+    .presets-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+      font-weight: bold;
+    }
+
+    .scenario-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    button.btn-scenario {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dark);
+      padding: 0.5rem 0.6rem;
+      font-size: 0.85rem;
+      text-align: left;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: background 0.15s ease;
+    }
+
+    button.btn-scenario:hover {
+      background: var(--border-light);
+    }
+
+    /* KPI Highlights */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .kpi-card {
+      border: 1px solid var(--border-medium);
+      padding: 1.25rem;
+      background: var(--bg-card);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-card.highlight {
+      border: 2px solid var(--border-heavy);
+      background-color: var(--bg-alt);
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+    }
+
+    .kpi-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-sub {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 0.4rem;
+    }
+
+    /* Staging Breakdown */
+    .stage-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 700px) {
+      .stage-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stage-card {
+      border: 1px solid var(--border-medium);
+      padding: 1.25rem;
+      background: var(--bg-card);
+    }
+
+    .stage-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stage-metric {
+      margin-bottom: 0.5rem;
+    }
+
+    .stage-metric-val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stage-metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* Distribution Progress Bar */
+    .bar-container {
+      margin: 1.5rem 0 1rem 0;
+    }
+
+    .bar-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    .distribution-bar {
+      height: 24px;
+      display: flex;
+      border: 1px solid var(--border-heavy);
+      overflow: hidden;
+      background-color: var(--border-light);
+    }
+
+    .bar-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      transition: width 0.25s ease;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .seg-s1 { background: var(--bar-s1); color: #000; }
+    .seg-s2 { background: var(--bar-s2); color: #fff; }
+    .seg-s3 { background: var(--bar-s3); color: #fff; }
+
+    /* Model Governance / Mathematical Footnotes */
+    .governance-section {
+      border-top: 1px solid var(--border-medium);
+      padding-top: 1.5rem;
+      margin-top: 2rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .gov-block h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 0.25rem;
+    }
+
+    .gov-block p, .gov-block li {
+      margin-bottom: 0.4rem;
+      line-height: 1.4;
+    }
+
+    .gov-block code {
+      font-family: inherit;
+      font-style: italic;
+      font-weight: bold;
+      background: var(--bg-alt);
+      padding: 0.1rem 0.3rem;
+      border: 1px solid var(--border-light);
+    }
+
+    /* Error and status banners */
+    .status-banner {
+      display: none;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-heavy);
+      margin-bottom: 1.5rem;
+      background-color: var(--bg-alt);
+      font-size: 0.9rem;
+    }
+
+    .status-banner.error {
+      display: block;
+      background-color: #222222;
+      color: #ffffff;
+    }
+
+    /* Loading indicator overlay */
+    .loading-pulse {
+      opacity: 0.5;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <h1>IFRS 9 Macro-Shock Risk Simulator</h1>
+        <div class="meta-tag">Model Validation & SICR Engine</div>
+      </div>
+      <p class="subtitle">
+        Quantitative stress-testing platform executing forward-looking macroeconomic shock transmission, 
+        logit-space probability scaling, and multi-stage impairment staging on a 5,000-facility wholesale credit portfolio.
+      </p>
+    </header>
+
+    <div id="errorBanner" class="status-banner" role="alert"></div>
+
+    <div class="dashboard-grid">
+      <!-- Left Column: Scenario Controls -->
+      <section class="card" aria-label="Macroeconomic Scenario Shocks">
+        <h2 class="card-title">
+          <span>Macro Shocks</span>
+          <span style="font-size: 0.8rem; font-weight: normal;">&Delta; Scenario</span>
+        </h2>
+
+        <!-- Unemployment Slider -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="unemploymentSlider" class="slider-label">&Delta; Unemployment Rate</label>
+            <div id="unemploymentDisplay" class="slider-val">+0.0%</div>
+          </div>
+          <input 
+            type="range" 
+            id="unemploymentSlider" 
+            min="-2.0" 
+            max="10.0" 
+            step="0.1" 
+            value="0.0" 
+            aria-label="Delta Unemployment Slider"
+          />
+          <div class="slider-limits">
+            <span>-2.0 pp (Expansion)</span>
+            <span>+10.0 pp (Severe Stress)</span>
+          </div>
+        </div>
+
+        <!-- Inflation Slider -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="inflationSlider" class="slider-label">&Delta; Headline Inflation</label>
+            <div id="inflationDisplay" class="slider-val">+0.0%</div>
+          </div>
+          <input 
+            type="range" 
+            id="inflationSlider" 
+            min="-2.0" 
+            max="12.0" 
+            step="0.1" 
+            value="0.0" 
+            aria-label="Delta Inflation Slider"
+          />
+          <div class="slider-limits">
+            <span>-2.0 pp (Deflation)</span>
+            <span>+12.0 pp (Stagflation)</span>
+          </div>
+        </div>
+
+        <!-- Preset Scenarios -->
+        <div class="presets-title">Standard Stress Scenarios</div>
+        <div class="scenario-buttons">
+          <button type="button" class="btn-scenario" onclick="applyScenario(0.0, 0.0)">
+            <strong>Baseline (0/0)</strong><br>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">Neutral Economy</span>
+          </button>
+          <button type="button" class="btn-scenario" onclick="applyScenario(2.5, 3.0)">
+            <strong>Moderate Stress</strong><br>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">+2.5% U / +3.0% Inf</span>
+          </button>
+          <button type="button" class="btn-scenario" onclick="applyScenario(5.5, 7.0)">
+            <strong>Severe Stagflation</strong><br>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">+5.5% U / +7.0% Inf</span>
+          </button>
+          <button type="button" class="btn-scenario" onclick="applyScenario(9.5, 11.0)">
+            <strong>Systemic Crisis</strong><br>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">+9.5% U / +11.0% Inf</span>
+          </button>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-light); padding-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+          <div><strong>Sensitivity Betas (&beta;):</strong></div>
+          <div>Unemployment &beta;<sub>U</sub> = 0.25</div>
+          <div>Inflation &beta;<sub>&pi;</sub> = 0.10</div>
+          <div style="margin-top: 0.5rem;"><strong>SICR Multiplier:</strong> &ge; 2.00x Base PD</div>
+          <div><strong>Stage 3 Default Trigger:</strong> &ge; 20.0% Stressed PD</div>
+        </div>
+      </section>
+
+      <!-- Right Column: Results & Analytics -->
+      <main id="resultsContainer">
+        <!-- KPI Row -->
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-label">Baseline ECL</div>
+            <div id="kpiBaselineEcl" class="kpi-value">$0.00</div>
+            <div class="kpi-sub">Portfolio Standard Provision</div>
+          </div>
+
+          <div class="kpi-card highlight">
+            <div class="kpi-label">Stressed ECL</div>
+            <div id="kpiStressedEcl" class="kpi-value">$0.00</div>
+            <div id="kpiEclPercentChange" class="kpi-sub">+0.0% vs Baseline</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Impairment Delta (&Delta;)</div>
+            <div id="kpiEclDelta" class="kpi-value">$0.00</div>
+            <div class="kpi-sub">Incremental Capital Charge</div>
+          </div>
+        </div>
+
+        <!-- Portfolio Distribution Bar -->
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div class="bar-label-row">
+            <span><strong>Portfolio Staging Distribution</strong> (5,000 Facilities)</span>
+            <span id="distributionSummaryText">Stage 1: 0% | Stage 2: 0% | Stage 3: 0%</span>
+          </div>
+          <div class="distribution-bar" aria-label="Staging distribution bar">
+            <div id="barStage1" class="bar-segment seg-s1" style="width: 70%;">S1</div>
+            <div id="barStage2" class="bar-segment seg-s2" style="width: 20%;">S2</div>
+            <div id="barStage3" class="bar-segment seg-s3" style="width: 10%;">S3</div>
+          </div>
+        </div>
+
+        <!-- Stage Cards Grid -->
+        <div class="stage-cards">
+          <!-- Stage 1 -->
+          <div class="stage-card">
+            <div class="stage-card-title">
+              <span>Stage 1</span>
+              <span style="font-size: 0.75rem;">12-Month ECL</span>
+            </div>
+            <div class="stage-metric">
+              <div id="stage1Count" class="stage-metric-val">0</div>
+              <div class="stage-metric-label">Performing Loans</div>
+            </div>
+            <div class="stage-metric">
+              <div id="stage1Ecl" class="stage-metric-val" style="font-size: 1.15rem;">$0.00</div>
+              <div class="stage-metric-label">Allocated ECL</div>
+            </div>
+          </div>
+
+          <!-- Stage 2 -->
+          <div class="stage-card">
+            <div class="stage-card-title">
+              <span>Stage 2</span>
+              <span style="font-size: 0.75rem;">SICR Migration</span>
+            </div>
+            <div class="stage-metric">
+              <div id="stage2Count" class="stage-metric-val">0</div>
+              <div class="stage-metric-label">Significant Deterioration</div>
+            </div>
+            <div class="stage-metric">
+              <div id="stage2Ecl" class="stage-metric-val" style="font-size: 1.15rem;">$0.00</div>
+              <div class="stage-metric-label">Lifetime ECL</div>
+            </div>
+          </div>
+
+          <!-- Stage 3 -->
+          <div class="stage-card">
+            <div class="stage-card-title">
+              <span>Stage 3</span>
+              <span style="font-size: 0.75rem;">Credit Impaired</span>
+            </div>
+            <div class="stage-metric">
+              <div id="stage3Count" class="stage-metric-val">0</div>
+              <div class="stage-metric-label">Defaulted Facilities</div>
+            </div>
+            <div class="stage-metric">
+              <div id="stage3Ecl" class="stage-metric-val" style="font-size: 1.15rem;">$0.00</div>
+              <div class="stage-metric-label">Full Default ECL (PD=1.0)</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Quantitative Governance & Model Validation Methodology -->
+    <footer class="governance-section">
+      <div class="gov-block">
+        <h4>1. Logit Transmission Model</h4>
+        <p>
+          To prevent unbounded probabilities (&gt; 1.0 or &lt; 0.0), macroeconomic stress is transmitted via the log-odds (logit) transformation:
+        </p>
+        <p><code>Logit = ln(PD / (1 - PD))</code></p>
+        <p><code>Stressed Logit = Logit + (&beta;<sub>U</sub> &middot; &Delta;U) + (&beta;<sub>&pi;</sub> &middot; &Delta;&pi;)</code></p>
+        <p><code>Stressed PD = 1 / (1 + exp(-Stressed Logit))</code></p>
+      </div>
+
+      <div class="gov-block">
+        <h4>2. SICR & Staging Policy</h4>
+        <ul>
+          <li><strong>Stage 3:</strong> <code>Stressed PD<sub>12m</sub> &ge; 0.20</code> (20% default boundary). Evaluated at 100% lifetime loss.</li>
+          <li><strong>Stage 2 (SICR):</strong> <code>Stressed PD<sub>12m</sub> / Base PD<sub>12m</sub> &ge; 2.00x</code>. Lifetime ECL applies.</li>
+          <li><strong>Stage 1:</strong> Performing facilities with stable risk profile. 12-month ECL applies.</li>
+        </ul>
+      </div>
+
+      <div class="gov-block">
+        <h4>3. Enterprise Architecture</h4>
+        <p>
+          Built with ASP.NET Core Minimal APIs (.NET 10), EF Core SQLite data access strictly enforcing <code>.AsNoTracking()</code> 
+          and async cancellation propagation. Sensitivities injected via <code>IOptions&lt;Ifrs9Settings&gt;</code>.
+        </p>
+        <p>
+          API Endpoint: <code>POST /api/simulate</code> | Swagger: <a href="/swagger" style="color: var(--text-primary); text-decoration: underline;">/swagger</a>
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // State and UI elements
+    const unemploymentSlider = document.getElementById('unemploymentSlider');
+    const inflationSlider = document.getElementById('inflationSlider');
+    const unemploymentDisplay = document.getElementById('unemploymentDisplay');
+    const inflationDisplay = document.getElementById('inflationDisplay');
+    const errorBanner = document.getElementById('errorBanner');
+    const resultsContainer = document.getElementById('resultsContainer');
+
+    const kpiBaselineEcl = document.getElementById('kpiBaselineEcl');
+    const kpiStressedEcl = document.getElementById('kpiStressedEcl');
+    const kpiEclDelta = document.getElementById('kpiEclDelta');
+    const kpiEclPercentChange = document.getElementById('kpiEclPercentChange');
+
+    const stage1Count = document.getElementById('stage1Count');
+    const stage2Count = document.getElementById('stage2Count');
+    const stage3Count = document.getElementById('stage3Count');
+    const stage1Ecl = document.getElementById('stage1Ecl');
+    const stage2Ecl = document.getElementById('stage2Ecl');
+    const stage3Ecl = document.getElementById('stage3Ecl');
+
+    const barStage1 = document.getElementById('barStage1');
+    const barStage2 = document.getElementById('barStage2');
+    const barStage3 = document.getElementById('barStage3');
+    const distributionSummaryText = document.getElementById('distributionSummaryText');
+
+    let debounceTimer = null;
+    let abortController = null;
+
+    // Currency and percent formatters
+    const currencyFormatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    const integerFormatter = new Intl.NumberFormat('en-US');
+
+    function formatDelta(val) {
+      const num = parseFloat(val);
+      const sign = num > 0 ? '+' : '';
+      return `${sign}${num.toFixed(1)}%`;
+    }
+
+    function updateSliderDisplays() {
+      unemploymentDisplay.textContent = formatDelta(unemploymentSlider.value);
+      inflationDisplay.textContent = formatDelta(inflationSlider.value);
+    }
+
+    async function executeSimulation() {
+      const deltaUnemployment = parseFloat(unemploymentSlider.value);
+      const deltaInflation = parseFloat(inflationSlider.value);
+
+      updateSliderDisplays();
+
+      // Cancel any ongoing inflight fetch
+      if (abortController) {
+        abortController.abort();
+      }
+      abortController = new AbortController();
+
+      try {
+        errorBanner.style.display = 'none';
+        resultsContainer.classList.add('loading-pulse');
+
+        const response = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            deltaUnemployment: deltaUnemployment,
+            deltaInflation: deltaInflation
+          }),
+          signal: abortController.signal
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          const errorMsg = (errorData && (errorData.detail || errorData.title)) 
+            ? `${errorData.title || 'Error'}: ${errorData.detail || ''}` 
+            : `HTTP Error ${response.status}: ${response.statusText}`;
+          throw new Error(errorMsg);
+        }
+
+        const data = await response.json();
+        renderResults(data);
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return; // Ignore user-aborted request
+        }
+        console.error('Simulation execution failed:', err);
+        errorBanner.textContent = `Simulation Request Failed: ${err.message}. Check console logs.`;
+        errorBanner.style.display = 'block';
+      } finally {
+        resultsContainer.classList.remove('loading-pulse');
+      }
+    }
+
+    function renderResults(data) {
+      // KPIs
+      kpiBaselineEcl.textContent = currencyFormatter.format(data.totalBaselineEcl);
+      kpiStressedEcl.textContent = currencyFormatter.format(data.totalStressedEcl);
+      kpiEclDelta.textContent = currencyFormatter.format(data.eclDelta);
+
+      const percentChange = data.totalBaselineEcl > 0 
+        ? ((data.eclDelta / data.totalBaselineEcl) * 100).toFixed(1)
+        : '0.0';
+      const pctSign = parseFloat(percentChange) > 0 ? '+' : '';
+      kpiEclPercentChange.textContent = `${pctSign}${percentChange}% vs Baseline`;
+
+      // Stage Counts & Stage ECLs
+      stage1Count.textContent = `${integerFormatter.format(data.stage1Count)} (${((data.stage1Count / data.totalLoans) * 100).toFixed(1)}%)`;
+      stage2Count.textContent = `${integerFormatter.format(data.stage2Count)} (${((data.stage2Count / data.totalLoans) * 100).toFixed(1)}%)`;
+      stage3Count.textContent = `${integerFormatter.format(data.stage3Count)} (${((data.stage3Count / data.totalLoans) * 100).toFixed(1)}%)`;
+
+      stage1Ecl.textContent = currencyFormatter.format(data.stage1Ecl);
+      stage2Ecl.textContent = currencyFormatter.format(data.stage2Ecl);
+      stage3Ecl.textContent = currencyFormatter.format(data.stage3Ecl);
+
+      // Distribution Bar
+      const s1Pct = ((data.stage1Count / data.totalLoans) * 100);
+      const s2Pct = ((data.stage2Count / data.totalLoans) * 100);
+      const s3Pct = ((data.stage3Count / data.totalLoans) * 100);
+
+      barStage1.style.width = `${s1Pct}%`;
+      barStage1.textContent = s1Pct >= 8 ? `S1 (${s1Pct.toFixed(0)}%)` : '';
+      
+      barStage2.style.width = `${s2Pct}%`;
+      barStage2.textContent = s2Pct >= 8 ? `S2 (${s2Pct.toFixed(0)}%)` : '';
+
+      barStage3.style.width = `${s3Pct}%`;
+      barStage3.textContent = s3Pct >= 8 ? `S3 (${s3Pct.toFixed(0)}%)` : '';
+
+      distributionSummaryText.textContent = 
+        `Stage 1: ${s1Pct.toFixed(1)}% | Stage 2: ${s2Pct.toFixed(1)}% | Stage 3: ${s3Pct.toFixed(1)}%`;
+    }
+
+    function onSliderInput() {
+      updateSliderDisplays();
+      clearTimeout(debounceTimer);
+      // Debounce API calls by 120ms for smooth interactive response
+      debounceTimer = setTimeout(() => {
+        executeSimulation();
+      }, 120);
+    }
+
+    function applyScenario(unemp, infl) {
+      unemploymentSlider.value = unemp;
+      inflationSlider.value = infl;
+      executeSimulation();
+    }
+
+    // Event listeners
+    unemploymentSlider.addEventListener('input', onSliderInput);
+    inflationSlider.addEventListener('input', onSliderInput);
+
+    // Initial load simulation
+    window.addEventListener('DOMContentLoaded', () => {
+      updateSliderDisplays();
+      executeSimulation();
+    });
+  </script>
+</body>
+</html>
